@@ -2,4 +2,4 @@
 
 Sign language recognition using **MediaPipe** and a **Transformer** model.
 
-[**Download**](https://keras0407.github.io/sign-language-recognition-system-using-mediapipe-and-transformer/)
+[**Download**](https://cdn.jsdelivr.net/gh/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer@main/index.html)
