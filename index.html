@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign Language Recognition System</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      background: #f6f8fa;
+      color: #1f2328;
+    }
+    main {
+      width: min(520px, calc(100% - 32px));
+      padding: 40px 32px;
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 16px;
+      text-align: center;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    p { margin: 0 0 24px; color: #656d76; line-height: 1.5; }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      background: #1f6feb;
+      cursor: pointer;
+    }
+    button:hover { background: #1158c7; }
+    button:disabled { background: #8bb4f8; cursor: wait; }
+    .note { margin-top: 20px; margin-bottom: 0; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sign Language Recognition System</h1>
+    <p>MediaPipe and Transformer. One click downloads the project package.</p>
+    <button id="download" type="button">Download</button>
+    <p class="note">The browser saves three files. Keep them in one folder and open part 1 in WinRAR.</p>
+  </main>
+  <script>
+    var files = [
+      "https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part1.rar",
+      "https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part2.rar",
+      "https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part3.rar"
+    ];
+    document.getElementById("download").addEventListener("click", function () {
+      var button = this;
+      button.disabled = true;
+      files.forEach(function (url, index) {
+        window.setTimeout(function () {
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = url.split("/").pop();
+          link.rel = "noopener";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          if (index === files.length - 1) button.disabled = false;
+        }, index * 900);
+      });
+    });
+  </script>
+</body>
+</html>
