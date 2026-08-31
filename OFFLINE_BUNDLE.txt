@@ -1,0 +1,58 @@
+ny_paper slim offline bundle (WinRAR / RAR)
+===========================================
+NOT included: training_datasets/ (66G), LUNA CT data-unversioned/, .git/
+
+Included:
+  python_libraries/     Windows cp310 wheels (torch 2.11.0+cu128)
+  references/           papers, notes, mediapipe_offline weights/docs
+  github_projects/
+    mediapipe/          official MediaPipe (no .git)
+    mediapipe-samples/
+    mediapipe_training/ unofficial trainers (no image zips)
+    OneEuroFilter/
+    dlwpt-code/         1e companion CODE + bundled data/ (no LUNA CTs)
+    dlwpt-code-2e/      2e companion CODE (no LUNA CTs)
+    README.txt
+  dev_com_spec.txt
+  OFFLINE_BUNDLE.txt
+
+LUNA subset0 and FreiHAND/WFLW/WIDER images stay on this Linux disk
+under training_datasets/ and dlwpt-code/data-unversioned/ — not in the
+archive. Copy them separately if you need them on the laptop.
+
+Slim archive size report
+========================
+Compressor: rar 6.23 (WinRAR-compatible)
+  command: rar a -m5 -md64m -s -ol -r -ep1 /root/ny_paper_offline_slim.rar ny_paper_offline_stage
+  (-ol stores remaining in-tree symlinks as links; does not follow them)
+  72 training_datasets outbound symlinks were replaced with *.SYMLINK.txt
+  pointers so RAR would not pack FreiHAND/WFLW/WIDER/LSP/MPII images.
+
+Archive:
+  filename: /root/ny_paper_offline_slim.rar
+  exact bytes: 4608676806
+  4.609 GB decimal (1e9)
+  4.292 GiB (1024**3)
+  listed files: 31206
+  listed uncompressed: 5833077599 bytes
+
+Staged source (before compression, after excluding .git / training_datasets / LUNA data-unversioned):
+  total: 5842854751 bytes  (5.6G)
+
+Per-folder staged sizes (du -sh / du -sb):
+  python_libraries/     3.0G     3187544507 bytes
+  github_projects/      1.9G     1888084448 bytes
+  references/           733M      767200214 bytes
+  dev_com_spec.txt      24K           20617 bytes
+  OFFLINE_BUNDLE.txt    4.0K            869 bytes
+
+  github_projects/dlwpt-code             383M     400377260 bytes
+  github_projects/dlwpt-code-2e          943M     987333399 bytes
+  github_projects/mediapipe              153M     149264947 bytes
+  github_projects/mediapipe-samples      150M     153011851 bytes
+  github_projects/mediapipe_training     244M     197702476 bytes
+  github_projects/OneEuroFilter          516K        386177 bytes
+  github_projects/README.txt             8.0K          4242 bytes
+
+Note: references/papers/10_landmark_training_datasets/ is citation PDFs only,
+not the training_datasets/ image corpus. Stage tree was deleted after verify.

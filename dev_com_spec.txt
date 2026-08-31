@@ -1,0 +1,427 @@
+================================================================================
+DEVELOPMENT COMPUTER SPECIFICATION AND PROJECT REQUIREMENTS
+Sign Language Recognition System (MediaPipe + Deep Learning)
+================================================================================
+Document type : Development environment / hardware-software requirements
+Status        : Canonical machine profile (must be used for all later work)
+Last updated  : 2026-08-29
+Network mode  : OFFLINE laptop (no internet). All Python wheels are cached in
+                python_libraries/ and must be installed with --no-index.
+CUDA / cuDNN  : ALREADY INSTALLED on the laptop. Do not reinstall or upgrade
+                CUDA 12.9 or cuDNN 9.12. Only install the Python wheels.
+================================================================================
+
+THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR THE AUTHOR'S DEVELOPMENT MACHINE.
+All later environment setup, dependency pins, CUDA notes, paper "experimental
+setup" sections, and implementation advice MUST follow this profile. Do not
+assume a Linux workstation, a desktop RTX card, or a different Python/CUDA
+stack unless this file is explicitly updated.
+
+
+--------------------------------------------------------------------------------
+1. PURPOSE OF THIS DOCUMENT
+--------------------------------------------------------------------------------
+
+This specification records the exact computer that is used to:
+
+  (1) run MediaPipe hand / face / lip landmark extraction,
+  (2) preprocess sign-language video into landmark sequences,
+  (3) train and evaluate recognition models (typically PyTorch / TensorFlow),
+  (4) write reproducible experimental settings for the paper.
+
+It also states software, GPU, and library requirements that must stay
+compatible with this machine. Later chat turns and later code must treat these
+values as fixed constraints.
+
+
+--------------------------------------------------------------------------------
+2. HOST MACHINE (FIXED PROFILE)
+--------------------------------------------------------------------------------
+
+2.0 Network / work mode (FIXED)
+  Laptop network     : OFFLINE. The development laptop has no internet.
+  Current session    : Online only to download wheels into python_libraries/.
+  Pipeline mode      : OFFLINE processing. Extract MediaPipe landmarks from
+                       stored videos, cache tensors, then train. Do not
+                       design the main system as a live/online webcam demo.
+  Consequence        : Never tell the author to "pip install" from PyPI on
+                       the laptop. Always install from python_libraries/.
+
+2.1 Operating system
+  OS family          : Microsoft Windows
+  OS version         : Windows 10
+  Architecture       : 64-bit (x86_64 / amd64)
+  Notes              : All Python wheels, CUDA toolkits, cuDNN binaries, and
+                       Visual C++ runtime assumptions are Windows 10 x64.
+                       WSL2 may be used later only if explicitly requested;
+                       default target remains native Win10 64-bit.
+
+2.2 Python
+  Python version     : 3.10  (CPython, 64-bit)
+  Recommended form   : python 3.10.x 64-bit, isolated virtual environment
+                       (venv or conda env named for this project)
+  Why 3.10           : MediaPipe official Python wheels, NumPy/OpenCV, and
+                       current PyTorch CUDA builds all support 3.10 cleanly.
+                       Do not move to 3.11/3.12 unless a dependency forces it.
+
+2.3 GPU
+  GPU model          : NVIDIA GeForce RTX 5060 Laptop GPU
+  Form factor        : Laptop (mobile TGP, not desktop RTX 5060)
+  Vendor             : NVIDIA
+  Architecture       : Blackwell-generation laptop GPU (RTX 50-series)
+  Typical VRAM class : 8 GB GDDR7 class laptop SKU (confirm with nvidia-smi
+                       on the actual device; treat 8 GB as the planning cap
+                       unless nvidia-smi shows more)
+  Power envelope     : Laptop TGP (commonly ~60–115 W depending on OEM
+                       power limit). Sustained training throughput is lower
+                       than a desktop card of the same name.
+  Driver requirement : A Windows Game Ready / Studio driver new enough for
+                       RTX 50-series and CUDA 12.9. Always verify with:
+                         nvidia-smi
+                       Expected report: CUDA Version 12.9 (or compatible).
+
+2.4 NVIDIA compute stack (FIXED — ALREADY INSTALLED, DO NOT TOUCH)
+  CUDA Toolkit       : 12.9     (already installed on the offline laptop)
+  cuDNN              : 9.12     (already installed on the offline laptop)
+  Compute path       : CUDA 12.9 + cuDNN 9.12 on RTX 5060 Laptop, Win10 x64
+  Install policy     : Do not download, upgrade, or reinstall the CUDA
+                       Toolkit or cuDNN. The laptop already has them.
+                       python_libraries/ contains Python wheels only.
+
+  Compatibility rules
+    - RTX 5060 is Blackwell (sm_120). Official PyTorch needs CUDA 12.8+
+      kernels. The cached wheel is torch 2.11.0+cu128 (Windows cp310).
+    - System CUDA 12.9 + driver is the host. The cu128 PyTorch wheel
+      bundles its own CUDA 12.8 runtime. That is the supported match.
+    - Do NOT install a CPU torch, cu124, or cu126 wheel. Those have no
+      sm_120 kernels and will raise "no kernel image" on the 5060.
+    - cuDNN 9.12 stays the system library. Do not mix cuDNN 8.x.
+    - MediaPipe landmark graphs do NOT use this CUDA stack (CPU /
+      XNNPACK, optional OpenGL). CUDA is for the recognizer only.
+
+2.5 CPU / system memory (planning assumptions for a modern RTX 5060 laptop)
+  CPU                : Recent Intel Core H / HX or AMD Ryzen HS/HX class
+                       (exact CPU SKU is OEM-dependent; not required to pin)
+  System RAM target  : 16 GB minimum, 32 GB recommended for video decoding
+                       + landmark extraction + training dataloader workers
+  Storage            : SSD required. Landmark-extraction caches and video
+                       datasets should live on a fast local SSD, not HDD.
+
+2.6 Quick identity block (copy into paper "Experimental Setup")
+  Hardware   : NVIDIA GeForce RTX 5060 Laptop GPU
+  OS         : Windows 10, 64-bit (OFFLINE)
+  Language   : Python 3.10
+  CUDA       : 12.9 (preinstalled)
+  cuDNN      : 9.12 (preinstalled)
+  PyTorch    : 2.11.0+cu128 (offline wheel in python_libraries/)
+  Front-end  : MediaPipe 1.0.1 (Hands, Face Mesh / Face Landmarker, Holistic)
+  Back-end   : PyTorch on RTX 5060; landmark extraction is offline/cached
+
+
+--------------------------------------------------------------------------------
+3. SOFTWARE REQUIREMENTS FOR THIS PROJECT
+--------------------------------------------------------------------------------
+
+3.1 Core runtime (must match Section 2)
+  - Windows 10 64-bit
+  - Python 3.10 64-bit
+  - NVIDIA driver supporting CUDA 12.9
+  - CUDA Toolkit 12.9
+  - cuDNN 9.12
+  - Microsoft Visual C++ Redistributable (x64), recent
+
+3.2 MediaPipe (feature extraction / theoretical front-end)
+  Role in system:
+    MediaPipe is the perception front-end. It converts each RGB video frame
+    into a compact, semantically meaningful landmark graph:
+      - 21 3D hand keypoints per hand (Hands / Hand Landmarker)
+      - 468 (or 478 with iris refine) 3D face keypoints (Face Mesh)
+      - lip / mouth contour subset (FACEMESH_LIPS) for mouthing / visemes
+      - optional 33 pose keypoints + both hands + face (Holistic, 543 pts)
+
+  Recommended Python packages (pin in the project venv):
+    - mediapipe          (Python 3.10 wheel)
+    - opencv-python      (video I/O, BGR<->RGB, visualization)
+    - numpy
+    - protobuf           (version required by the chosen mediapipe wheel)
+
+  Two API generations exist in the local mediapipe/ tree:
+    A. Legacy Solutions API
+         mp.solutions.hands.Hands
+         mp.solutions.face_mesh.FaceMesh
+         mp.solutions.holistic.Holistic
+       Still the most common API in sign-language papers and tutorials.
+    B. Tasks API (current)
+         mediapipe.tasks.python.vision.HandLandmarker
+         mediapipe.tasks.python.vision.FaceLandmarker
+         mediapipe.tasks.python.vision.HolisticLandmarker
+       Preferred for new code. Same landmark topology, newer graph.
+
+  Important runtime fact for THIS machine:
+    MediaPipe landmark inference on Windows Python is typically CPU/XNNPACK
+    (and optionally GPU via OpenGL), NOT via the CUDA 12.9 / cuDNN 9.12
+    stack. That CUDA stack is reserved for the recognition-network training
+    stage. Do not write the paper as if MediaPipe Hands "runs on CUDA 12.9".
+    Write: landmark extraction with MediaPipe; classifier training on
+    RTX 5060 Laptop (CUDA 12.9, cuDNN 9.12).
+
+3.3 Deep-learning training stack (must use the GPU profile)
+  Intended use:
+    Sequence models over MediaPipe landmarks (e.g. transformer, BiLSTM,
+    TCN, graph convolution, or hybrid CNN+RNN on landmark heatmaps /
+    coordinate streams).
+
+  Requirements:
+    - Framework with official or vendor CUDA 12.x Windows wheels
+    - cuDNN 9.12 compatible build
+    - Batch size and sequence length must respect ~8 GB laptop VRAM
+    - Mixed precision (FP16 / TF32) recommended on RTX 50-series
+    - num_workers for DataLoader should stay modest on Windows
+      (start with 0 or 2; Windows spawn is not Linux fork)
+
+  VRAM planning on RTX 5060 Laptop (treat 8 GB as the cap):
+    Landmark-only sequence models     : comfortable (batch 32–128 typical)
+    RGB video backbone (ResNet/ViT)   : tight; use small batch, AMP, freeze
+    Holistic 543-D x T sequences      : comfortable if not also decoding
+                                        many HD videos on GPU
+    Simultaneous extract + train      : avoid; extract landmarks offline
+                                        first, then train on .npy/.pt cache
+
+3.4 Video and dataset tooling
+  - OpenCV (FFmpeg-enabled) for frame decode
+  - Optional: decord / torchvision.io if Windows wheels are available
+  - ffmpeg CLI recommended for resizing / FPS normalization before
+    MediaPipe, so landmark quality is stable across clips
+  - Typical ingest settings for SLR:
+      resolution  : 720p or 1080p source, MediaPipe sees RGB frames
+      FPS         : keep native or resample to a fixed rate (25 or 30)
+      color       : BGR (OpenCV) -> RGB before MediaPipe process()
+
+3.5 Paper / writing environment (this repository)
+  - Theoretical MediaPipe write-up must cite:
+      Lugaresi et al., MediaPipe (framework)
+      Zhang / Bazarevsky et al., MediaPipe Hands (arXiv:2006.10214)
+      Kartynnik et al., Real-time Facial Surface Geometry (arXiv:1907.06724)
+      Grishchenko et al., Attention Mesh (arXiv:2006.10962)
+      Bazarevsky / Grishchenko, MediaPipe Holistic (Google AI Blog, 2020)
+      Bazarevsky et al., BlazeFace (arXiv:1907.05047)
+      Bazarevsky et al., BlazePose
+  - Experimental-setup paragraph must list Section 2.6 exactly.
+
+
+--------------------------------------------------------------------------------
+4. FUNCTIONAL REQUIREMENTS OF THE SLR PIPELINE ON THIS MACHINE
+--------------------------------------------------------------------------------
+
+4.1 Must-have perception modules (MediaPipe)
+  R1. Two-hand landmark extraction
+      21 keypoints x 2 hands, with handedness (Left / Right).
+      Use Hands or HandLandmarker. max_num_hands = 2.
+
+  R2. Lip / mouth landmark extraction
+      Face Mesh / Face Landmarker with refine_landmarks = True
+      (Attention Mesh) so lip and iris regions are higher accuracy.
+      Downstream code must slice FACEMESH_LIPS (outer + inner mouth
+      contours), not the full 468-point mesh, unless ablation needs all
+      face points.
+
+  R3. Optional but recommended: Holistic
+      33 pose + 468 face + 21 + 21 hands = 543 landmarks, semantically
+      consistent left/right assignment. Best when signs use body shift,
+      shoulder, or non-manuals together with hands and mouth.
+
+  R4. Temporal tracking mode for video
+      static_image_mode = False (legacy) or VIDEO / LIVE_STREAM running
+      mode (Tasks API). Detector runs on the first frames and on tracking
+      loss; landmark model tracks in between. This is required for
+      real-time and for long sign videos.
+
+4.2 Must-have training / evaluation behaviour
+  R5. Offline landmark cache
+      Because the laptop GPU is shared and MediaPipe is CPU-heavy,
+      extract landmarks once per video, save them, then train on tensors.
+
+  R6. CUDA training only on the classifier
+      Landmark files are small. The RTX 5060 Laptop + CUDA 12.9 +
+      cuDNN 9.12 is used to train/evaluate the sequence model.
+
+  R7. Reproducibility
+      Record: Python 3.10, mediapipe version, OpenCV version, torch/tf
+      version, CUDA 12.9, cuDNN 9.12, GPU name, Windows 10 64-bit,
+      random seed, FPS, detection/tracking confidence thresholds.
+
+4.3 Quality thresholds (defaults; tune on the dataset)
+  min_detection_confidence : 0.5
+  min_tracking_confidence  : 0.5
+  refine_face_landmarks    : True   (required for lip-focused SLR)
+  model_complexity (hands) : 1      (full) unless latency forces 0
+  model_complexity (pose)  : 1      (Holistic default)
+
+4.4 Known constraints on this laptop
+  C1. Laptop TGP: long training jobs will thermal-throttle. Prefer
+      overnight landmark extraction on CPU, then GPU training with AMP.
+  C2. 8 GB-class VRAM: do not plan large RGB video backbones without
+      gradient checkpointing / frame sampling.
+  C3. Windows file locking and DataLoader spawn: keep workers low.
+  C4. Handedness assumes a mirrored selfie image. For unmirrored dataset
+      videos, swap Left/Right in post-process.
+  C5. MediaPipe Hands is trained for visible palms/fists; heavy motion
+      blur, gloves, or extreme out-of-plane rotation will drop track.
+      The paper should state this as a limitation of the front-end.
+
+
+--------------------------------------------------------------------------------
+5. WHY THIS STACK MATCHES THE PAPER
+--------------------------------------------------------------------------------
+
+Sign language is multi-articulatory: manual features (handshape, orientation,
+movement, location) plus non-manual features (mouthing, lip aperture, cheek,
+jaw, eyebrows). MediaPipe is the correct theoretical and practical front-end
+because it already decomposes a monocular RGB frame into those articulators
+as 3D landmarks, at real-time speed, without a depth camera.
+
+This computer is sufficient for that design:
+
+  - MediaPipe landmark graphs are light enough for Python 3.10 on Win10
+    even when the GPU is busy.
+  - The RTX 5060 Laptop with CUDA 12.9 and cuDNN 9.12 is enough to train
+    a landmark-sequence recognizer (the usual SLR research setup).
+  - Full end-to-end RGB video transformers may not fit comfortably in
+    laptop VRAM; the paper's main path should be MediaPipe landmarks ->
+    sequence model, with RGB baselines only if memory allows.
+
+Do not change OS, Python, CUDA, or cuDNN in later requirements without
+updating this file first.
+
+
+--------------------------------------------------------------------------------
+6. CHECKLIST BEFORE ANY EXPERIMENT IS CALLED "OFFICIAL"
+--------------------------------------------------------------------------------
+
+  [ ] Windows 10 64-bit confirmed
+  [ ] Laptop is offline; no pip calls to the internet
+  [ ] python --version  shows 3.10.x 64-bit
+  [ ] nvidia-smi        shows RTX 5060 Laptop and CUDA 12.9
+  [ ] cuDNN 9.12        already present; was NOT reinstalled
+  [ ] slr_venv created from python_libraries/INSTALL_OFFLINE.bat
+  [ ] torch.__version__ is 2.11.0+cu128 and torch.cuda.is_available() is True
+  [ ] mediapipe import  succeeds in the same venv
+  [ ] Hands: 21 x 2 landmarks on a two-hand test clip
+  [ ] Face Mesh refine: FACEMESH_LIPS visible and stable
+  [ ] Optional Holistic: pose + face + both hands aligned
+  [ ] Landmark cache written to disk before GPU training
+  [ ] Paper experimental-setup paragraph uses Section 2.6 wording
+
+
+--------------------------------------------------------------------------------
+7. MEMORY RULE FOR FUTURE WORK ON THIS REPOSITORY
+--------------------------------------------------------------------------------
+
+Always treat the following as already known. Do not ask the author again
+unless they change this file:
+
+  Computer : RTX 5060 laptop (OFFLINE, no internet)
+  OS       : Windows 10 64-bit
+  Python   : 3.10
+  CUDA     : 12.9   (already installed — do not reinstall)
+  cuDNN    : 9.12   (already installed — do not reinstall)
+  PyTorch  : 2.11.0+cu128 from python_libraries/ (Blackwell / sm_120)
+  Domain   : Sign language recognition
+  Pipeline : OFFLINE (extract landmarks from files, cache, then train)
+  Front-end: MediaPipe (hands + lips/face, optional holistic)
+  GPU role : Train/evaluate the recognizer; not the default MediaPipe graph
+  Wheels   : python_libraries/ is the only install source on the laptop
+
+
+--------------------------------------------------------------------------------
+8. OFFLINE PYTHON LIBRARY CACHE (python_libraries/)
+--------------------------------------------------------------------------------
+
+This repository folder is the complete offline install source for the
+Windows laptop. Copy the whole folder onto the laptop (USB / local disk).
+Do not run pip against PyPI on that machine.
+
+8.1 What is already on the laptop (do not download again)
+  - Windows 10 64-bit
+  - Python 3.10 64-bit
+  - NVIDIA driver for RTX 5060
+  - CUDA Toolkit 12.9
+  - cuDNN 9.12
+  - Microsoft Visual C++ Redistributable (x64) if the OEM image has it;
+    if a wheel fails with "VCRUNTIME140.dll", install that redistributable
+    from a local copy. It is not a Python package.
+
+8.2 What this folder provides (65 wheels, ~2.9 GB)
+  All packages are Windows wheels for CPython 3.10 (cp310 / win_amd64,
+  or py3-none-any / abi3). Pinned versions:
+
+  Deep learning
+    torch                2.11.0+cu128
+    torchvision          0.26.0+cu128
+    torchaudio           2.11.0+cu128
+    torchmetrics         1.9.0
+    lightning-utilities  0.15.3
+
+  Perception
+    mediapipe            1.0.1
+    opencv-contrib-python 5.0.0.93
+
+  Scientific / data
+    numpy 2.2.6, scipy 1.15.3, pandas 2.3.3, scikit-learn 1.7.2,
+    pillow 12.3.0, matplotlib 3.10.9, seaborn 0.13.2, h5py 3.16.0,
+    einops 0.8.2, pyyaml 6.0.3, tqdm 4.70.0, joblib 1.5.3
+
+  Video
+    av 17.1.0, imageio 2.37.4, imageio-ffmpeg 0.6.0
+
+  Logging
+    tensorboard 2.21.0 and its protobuf / grpcio / markdown stack
+
+  Bootstrap
+    pip 26.2.1, setuptools 81.0.0 (torch requires setuptools<82),
+    wheel 0.48.0
+
+  Spare wheel (do not install with contrib)
+    opencv_python-5.0.0.93  — kept only as a spare. Installing both
+    opencv-python and opencv-contrib-python conflicts. The official
+    install list uses opencv-contrib-python only (MediaPipe needs it).
+
+8.3 Install on the offline laptop
+  Option A — double-click / run:
+    python_libraries\INSTALL_OFFLINE.bat
+    This creates ..\slr_venv and installs every pin from
+    requirements-offline.txt with --no-index --find-links=.
+
+  Option B — manual:
+    cd python_libraries
+    python -m venv C:\slr_venv
+    C:\slr_venv\Scripts\activate
+    python -m pip install --no-index --find-links=. pip==26.2.1 setuptools==81.0.0 wheel==0.48.0
+    python -m pip install --no-index --find-links=. -r requirements-offline.txt
+
+  After install, required check:
+    python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+    Expected:
+      2.11.0+cu128
+      True
+      NVIDIA GeForce RTX 5060 Laptop GPU
+
+8.4 Why cu128 and not a "cu129" wheel
+  Official PyTorch Windows Blackwell builds are published as cu128
+  (and newer cu13x). There is no separate cu129 torch wheel that we
+  must match to the system toolkit. CUDA 12.9 on the laptop is the
+  driver/toolkit. The 2.11.0+cu128 wheel contains sm_120 kernels.
+  That is the combination that actually runs on RTX 5060.
+
+8.5 Offline SLR pipeline (how the libraries are used)
+  Stage 1  Decode stored sign videos (OpenCV / PyAV / imageio-ffmpeg).
+  Stage 2  MediaPipe Hands + Face Mesh (refine_landmarks=True) or
+           Holistic. Write landmark sequences to .npy / .pt on disk.
+  Stage 3  Train the recognizer with PyTorch 2.11.0+cu128 on the 5060.
+           Use AMP. Keep DataLoader workers at 0 or 2 on Windows.
+  Stage 4  Evaluate from the same cached landmarks. No live camera
+           required for the paper experiments.
+
+================================================================================
+END OF SPECIFICATION
+================================================================================

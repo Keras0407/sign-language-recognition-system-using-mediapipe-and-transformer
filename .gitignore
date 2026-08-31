@@ -1,0 +1,18 @@
+# Never push these (GitHub file limit 100 MB; Release limit 2 GB per file)
+.cursor/
+training_datasets/
+github_projects/
+python_libraries/
+references/papers/
+references/mediapipe_offline/models/
+*.rar
+*.zip
+*.7z
+*.pth
+*.pt
+*.whl
+data-unversioned/
+ny_paper_offline_stage/
+__pycache__/
+.venv/
+slr_venv/
