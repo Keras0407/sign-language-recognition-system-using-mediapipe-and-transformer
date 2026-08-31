@@ -1,11 +1,10 @@
 .cursor/
-OFFLINE_BUNDLE.txt
+*_BUNDLE.txt
 dev_com_spec.txt
 training_datasets/
 github_projects/
 python_libraries/
-references/papers/
-references/mediapipe_offline/models/
+references/
 *.rar
 *.zip
 *.7z

